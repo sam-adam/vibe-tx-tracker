@@ -1,6 +1,6 @@
 <?php
 // CSV Configuration
-define('CSV_FILE_PATH', dirname(__DIR__) . '/transactions.csv');
+define('CSV_FILE_PATH', './transactions.csv');
 
 // CSV Column Indices
 define('CSV_COL_ID', 0);
