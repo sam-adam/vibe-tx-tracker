@@ -1,4 +1,7 @@
 <?php
+// CSV Configuration
+define('CSV_FILE_PATH', dirname(__DIR__) . '/transactions.csv');
+
 // CSV Column Indices
 define('CSV_COL_ID', 0);
 define('CSV_COL_CLIENT', 1);
@@ -9,7 +12,11 @@ define('CSV_COL_LABEL', 5);
 
 // Client Manager Class
 class ClientManager {
-    private $csvFile = '../transactions.csv';
+    private $csvFile;
+
+    public function __construct() {
+        $this->csvFile = CSV_FILE_PATH;
+    }
 
     public function listClients() {
         $clients = [];
@@ -187,7 +194,7 @@ class TransactionManager {
     private $csvFile;
 
     public function __construct() {
-        $this->csvFile = dirname(__DIR__) . '/transactions.csv';
+        $this->csvFile = CSV_FILE_PATH;
         $this->csvHandler = new CsvHandler($this->csvFile);
         $this->ensureCsvFileExists();
     }
