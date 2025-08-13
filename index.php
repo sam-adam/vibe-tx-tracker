@@ -144,28 +144,65 @@ class CsvHandler {
 
     public function writeAll($header, $data) {
         $tempFile = tempnam(sys_get_temp_dir(), 'csv_');
-        $success = false;
+        if ($tempFile === false) {
+            error_log('Failed to create temporary file');
+            return false;
+        }
 
-        if (($handle = fopen($tempFile, 'w')) !== FALSE) {
+        $success = false;
+        $handle = @fopen($tempFile, 'w');
+        
+        if ($handle === false) {
+            error_log('Failed to open temporary file for writing: ' . $tempFile);
+            @unlink($tempFile);
+            return false;
+        }
+
+        try {
             // Write header
-            fputcsv($handle, $header, $this->delimiter, $this->enclosure, $this->escape);
+            if (fputcsv($handle, $header, $this->delimiter, $this->enclosure, $this->escape) === false) {
+                throw new Exception('Failed to write CSV header');
+            }
 
             // Write data rows
             foreach ($data as $row) {
-                fputcsv($handle, $row, $this->delimiter, $this->enclosure, $this->escape);
+                $rowData = [];
+                foreach ($header as $column) {
+                    $rowData[] = $row[$column] ?? '';
+                }
+                if (fputcsv($handle, $rowData, $this->delimiter, $this->enclosure, $this->escape) === false) {
+                    throw new Exception('Failed to write CSV row');
+                }
             }
 
-            fclose($handle);
-
-            // Only replace original file if write was successful
-            if (filesize($tempFile) > 0) {
-                $success = rename($tempFile, $this->filePath);
+            if (fflush($handle) === false) {
+                throw new Exception('Failed to flush buffer to file');
             }
-        }
+            
+            if (fclose($handle) === false) {
+                throw new Exception('Failed to close file handle');
+            }
+            $handle = null;
 
-        // Clean up temp file if it still exists
-        if (file_exists($tempFile)) {
-            unlink($tempFile);
+            // Only attempt to rename if the target file is writable or doesn't exist
+            if (!file_exists($this->filePath) || is_writable($this->filePath)) {
+                $success = @rename($tempFile, $this->filePath);
+                if (!$success) {
+                    throw new Exception('Failed to move temporary file to destination');
+                }
+            } else {
+                throw new Exception('Destination file is not writable: ' . $this->filePath);
+            }
+        } catch (Exception $e) {
+            error_log('Error writing CSV: ' . $e->getMessage());
+            $success = false;
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            if (file_exists($tempFile)) {
+                @unlink($tempFile);
+            }
         }
 
         return $success;
@@ -254,7 +291,7 @@ class TransactionManager {
                     'id' => $id,
                     'client' => $client,
                     'date' => $date,
-                    'amount' => $amount,
+                    'amount' => (string)$amount,
                     'type' => $type,
                     'label' => $label,
                     'deleted' => $deleted ? '1' : '0'
@@ -270,7 +307,7 @@ class TransactionManager {
                 'id' => $id,
                 'client' => $client,
                 'date' => $date,
-                'amount' => $amount,
+                'amount' => (string)$amount,
                 'type' => $type,
                 'label' => $label,
                 'deleted' => $deleted ? '1' : '0'
@@ -278,7 +315,12 @@ class TransactionManager {
         }
 
         // Write all data back to file
-        $this->csvHandler->writeAll($header, $allData);
+        $success = $this->csvHandler->writeAll($header, $allData);
+        
+        if (!$success) {
+            error_log('Failed to write transaction data to CSV');
+            return false;
+        }
 
         return $id;
     }
@@ -382,7 +424,7 @@ if ($is_api_request) {
                 }
 
                 // Create the transaction
-                $transactionManager->createTransaction(
+                $transactionId = $transactionManager->createTransaction(
                     $client,
                     $date,
                     $amount,
@@ -390,8 +432,16 @@ if ($is_api_request) {
                     $label
                 );
 
+                if ($transactionId === false) {
+                    throw new Exception('Failed to write transaction to file');
+                }
+
                 // If we got here, the transaction was created successfully
-                echo json_encode(['success' => true, 'message' => 'Transaction created successfully']);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Transaction created successfully',
+                    'transactionId' => $transactionId
+                ]);
                 break;
 
             case 'update':
