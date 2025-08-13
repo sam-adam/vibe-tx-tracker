@@ -279,10 +279,20 @@ class TransactionManager {
     }
 
     public function writeTransaction($client, $date, $amount, $type, $label, $deleted, $id = null) {
-        $id = $id ?? uniqid('', true);
         $header = ['id', 'client', 'date', 'amount', 'type', 'label', 'deleted'];
         $allData = $this->csvHandler->readAll();
         $found = false;
+        
+        // If no ID provided, generate a new one by finding the max ID and incrementing
+        if ($id === null) {
+            $maxId = 0;
+            foreach ($allData as $row) {
+                if (isset($row['id']) && is_numeric($row['id']) && (int)$row['id'] > $maxId) {
+                    $maxId = (int)$row['id'];
+                }
+            }
+            $id = (string)($maxId + 1);
+        }
 
         // Check if we're updating an existing transaction
         foreach ($allData as &$row) {
