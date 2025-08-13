@@ -639,14 +639,66 @@ $clientNames = array_values($clients);
 // print_r($clients);
 // echo "</pre>";
 
-// Convert clients to JSON for JavaScript
-$clientsJson = json_encode($clients); // Send the full id => name mapping
-
-// Function to format date with day name
+// Helper function to format date with day name
 function formatDateWithDay($dateString) {
     $date = new DateTime($dateString);
-    return $date->format('D, M j, Y'); // e.g., "Mon, Aug 10, 2025"
+    return $date->format('D, M j, Y');
 }
+
+// Function to get month-year key for grouping
+function getMonthYearKey($dateString) {
+    $date = new DateTime($dateString);
+    return $date->format('Y-m');
+}
+
+// Function to format month-year for display
+function formatMonthYear($dateString) {
+    $date = new DateTime($dateString);
+    return $date->format('F Y');
+}
+
+// Get current month-year for default expanded section
+$currentMonthYear = date('Y-m');
+
+// Get all transactions
+$transactionManager = new TransactionManager();
+$allTransactions = $transactionManager->listTransactions();
+
+// Sort transactions by date (newest first)
+usort($allTransactions, function($a, $b) {
+    return strtotime($b['date']) - strtotime($a['date']);
+});
+
+// Group transactions by client and month
+$groupedTransactions = [];
+
+foreach ($allTransactions as $transaction) {
+    $client = $transaction['client'];
+    $monthYear = getMonthYearKey($transaction['date']);
+    
+    if (!isset($groupedTransactions[$client])) {
+        $groupedTransactions[$client] = [];
+    }
+    
+    if (!isset($groupedTransactions[$client][$monthYear])) {
+        $groupedTransactions[$client][$monthYear] = [
+            'display' => formatMonthYear($transaction['date']),
+            'transactions' => []
+        ];
+    }
+    
+    $groupedTransactions[$client][$monthYear]['transactions'][] = $transaction;
+}
+
+// Sort clients alphabetically
+ksort($groupedTransactions);
+
+// Get unique clients for the dropdown
+$clients = array_keys($groupedTransactions);
+$clientsJson = json_encode($clients);
+
+// Convert clients to JSON for JavaScript
+$clientsJson = json_encode($clients);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -738,9 +790,29 @@ function formatDateWithDay($dateString) {
         
         /* Base styles */
         body { 
-            @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            @apply antialiased text-gray-900 dark:text-gray-100;
+        }
+        
+        /* Enhanced balance display */
+        .balance-display {
+            @apply font-bold text-base sm:text-lg px-3 py-1.5 rounded-full shadow-sm transition-all duration-200;
+        }
+        
+        .balance-positive {
+            @apply bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200;
+        }
+        
+        .balance-negative {
+            @apply bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200;
+        }
+        
+        .balance-zero {
+            @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200;
+        }
+        
+        .month-balance {
+            @apply text-xs font-semibold px-2 py-0.5 rounded-full ml-2;
         }
         
         /* Dark mode overrides */
@@ -844,7 +916,7 @@ function formatDateWithDay($dateString) {
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-colors duration-200">
             <div class="space-y-6">
-                <?php if (empty($transactions)): ?>
+                <?php if (empty($groupedTransactions)): ?>
                     <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                         <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -859,20 +931,23 @@ function formatDateWithDay($dateString) {
                         </div>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($transactions as $client => $trans): ?>
-                        <?php
-                        $balance = 0;
-                        foreach ($trans as $t) {
-                            if ($t['type'] === 'debit') {
-                                $balance += $t['amount'];
-                            } else if ($t['type'] === 'credit') {
-                                $balance -= $t['amount'];
+                    <?php foreach ($groupedTransactions as $client => $months): ?>
+                        <?php 
+                        // Calculate total balance for the client
+                        $clientBalance = 0;
+                        foreach ($months as $monthData) {
+                            foreach ($monthData['transactions'] as $t) {
+                                if ($t['type'] === 'debit') {
+                                    $clientBalance += $t['amount'];
+                                } else if ($t['type'] === 'credit') {
+                                    $clientBalance -= $t['amount'];
+                                }
                             }
                         }
-                        $isPositiveBalance = $balance >= 0;
+                        $isPositiveBalance = $clientBalance >= 0;
                         ?>
                         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
-                            <!-- Client Header - More compact on mobile -->
+                            <!-- Client Header -->
                             <div class="px-4 sm:px-6 py-3 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 dark:bg-gray-700">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
@@ -882,78 +957,136 @@ function formatDateWithDay($dateString) {
                                         <?php echo htmlspecialchars($client); ?>
                                     </h3>
                                 </div>
-                                <div class="mt-2 sm:mt-0 sm:ml-2">
-                                    <span class="inline-block px-2 py-1 text-xs sm:text-sm rounded-full font-medium whitespace-nowrap <?php echo $isPositiveBalance ? 'bg-success-100 dark:bg-success-900 text-success-800 dark:text-success-200' : 'bg-danger-100 dark:bg-danger-900 text-danger-800 dark:text-danger-200'; ?>">
-                                        <?php echo $isPositiveBalance ? 'Balance: +' : 'Balance: -'; ?><?php echo number_format(abs($balance), 2); ?>
-                                    </span>
+                                <div class="mt-2 sm:mt-0 sm:ml-3">
+                                    <?php 
+                                    $balanceClass = 'balance-display ';
+                                    if ($clientBalance > 0) {
+                                        $balanceClass .= 'balance-positive';
+                                        $balanceSign = '+';
+                                    } else if ($clientBalance < 0) {
+                                        $balanceClass .= 'balance-negative';
+                                        $balanceSign = '-';
+                                    } else {
+                                        $balanceClass .= 'balance-zero';
+                                        $balanceSign = '';
+                                    }
+                                    ?>
+                                    <div class="<?php echo $balanceClass; ?>">
+                                        <span class="font-medium">Balance: </span>
+                                        <span class="font-bold"><?php echo $balanceSign . number_format(abs($clientBalance), 2); ?></span>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- Transactions List - More compact on mobile -->
-                            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                                <?php foreach($trans as $t): 
-                                    $isCredit = $t['type'] === 'credit';
+                            <!-- Months Accordion -->
+                            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <?php foreach ($months as $monthKey => $monthData): 
+                                    $isCurrentMonth = $monthKey === $currentMonthYear;
+                                    $monthBalance = 0;
+                                    foreach ($monthData['transactions'] as $t) {
+                                        if ($t['type'] === 'debit') {
+                                            $monthBalance += $t['amount'];
+                                        } else if ($t['type'] === 'credit') {
+                                            $monthBalance -= $t['amount'];
+                                        }
+                                    }
+                                    $isMonthPositive = $monthBalance >= 0;
                                 ?>
-                                    <li class="transaction-item px-3 sm:px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
-                                            <div class="flex items-start sm:items-center space-x-3">
-                                                <div class="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center <?php echo $isCredit ? 'bg-red-100 dark:bg-red-900/50' : 'bg-green-100 dark:bg-green-900/50'; ?>">
-                                                    <i class="fas <?php echo $isCredit ? 'fa-arrow-up text-red-600 dark:text-red-400' : 'fa-arrow-down text-green-600 dark:text-green-400'; ?> text-xs sm:text-sm"></i>
-                                                </div>
-                                                <div class="min-w-0 flex-1">
-                                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100 break-words">
-                                                        <?php echo htmlspecialchars(formatDateWithDay($t['date'])); ?>
-                                                    </div>
-                                                    <?php if (!empty($t['label'])): ?>
-                                                        <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 break-words">
-                                                            <?php echo htmlspecialchars($t['label']); ?>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
-                                                <span class="text-sm sm:text-base font-semibold whitespace-nowrap <?php echo $isCredit ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'; ?>">
-                                                    <?php echo $isCredit ? '-' : '+'; ?><?php echo number_format(abs($t['amount']), 2); ?>
+                                    <div class="month-section">
+                                        <!-- Month Header -->
+                                        <button class="month-header w-full px-4 sm:px-6 py-3 text-left flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150" 
+                                                onclick="toggleMonthSection(this)">
+                                            <div class="flex items-center">
+                                                <span class="font-medium text-gray-900 dark:text-white">
+                                                    <?php echo htmlspecialchars($monthData['display']); ?>
                                                 </span>
-                                                <div class="flex space-x-0.5 sm:space-x-1">
-                                                    <button type="button" 
-                                                            class="p-1.5 sm:p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 editTransactionBtn"
-                                                            data-id="<?php echo htmlspecialchars($t['id']); ?>"
-                                                            data-client="<?php echo htmlspecialchars($client); ?>"
-                                                            data-date="<?php echo htmlspecialchars($t['date']); ?>"
-                                                            data-amount="<?php echo $t['amount']; ?>"
-                                                            data-type="<?php echo htmlspecialchars($t['type']); ?>"
-                                                            data-label="<?php echo !empty($t['label']) ? htmlspecialchars($t['label']) : ''; ?>"
-                                                            aria-label="Edit">
-                                                        <i class="fas fa-pencil-alt text-sm"></i>
-                                                    </button>
-                                                    <button type="button" 
-                                                            class="p-1.5 sm:p-2 text-gray-400 hover:text-warning-600 dark:hover:text-warning-400 transition-colors duration-200 duplicateTransactionBtn"
-                                                            data-client="<?php echo htmlspecialchars($client); ?>"
-                                                            data-date="<?php echo htmlspecialchars($t['date']); ?>"
-                                                            data-amount="<?php echo $t['amount']; ?>"
-                                                            data-type="<?php echo htmlspecialchars($t['type']); ?>"
-                                                            data-label="<?php echo !empty($t['label']) ? htmlspecialchars($t['label']) : ''; ?>"
-                                                            aria-label="Duplicate">
-                                                        <i class="far fa-copy text-sm"></i>
-                                                    </button>
-                                                    <button type="button" 
-                                                            class="p-1.5 sm:p-2 text-gray-400 hover:text-danger-600 dark:hover:text-danger-400 transition-colors duration-200 deleteTransactionBtn"
-                                                            data-id="<?php echo htmlspecialchars($t['id']); ?>"
-                                                            data-client="<?php echo htmlspecialchars($client); ?>"
-                                                            aria-label="Delete">
-                                                        <i class="far fa-trash-alt text-sm"></i>
-                                                    </button>
-                                                </div>
+                                                <?php 
+                                                $monthBalanceClass = 'month-balance ';
+                                                if ($monthBalance > 0) {
+                                                    $monthBalanceClass .= 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200';
+                                                    $monthBalanceSign = '+';
+                                                } else if ($monthBalance < 0) {
+                                                    $monthBalanceClass .= 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200';
+                                                    $monthBalanceSign = '-';
+                                                } else {
+                                                    $monthBalanceClass .= 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+                                                    $monthBalanceSign = '';
+                                                }
+                                                ?>
+                                                <span class="<?php echo $monthBalanceClass; ?>">
+                                                    <?php echo $monthBalanceSign . number_format(abs($monthBalance), 2); ?>
+                                                </span>
                                             </div>
+                                            <i class="fas fa-chevron-down text-gray-400 dark:text-gray-500 transform transition-transform duration-200"></i>
+                                        </button>
+                                        
+                                        <!-- Transactions List -->
+                                        <div class="month-transactions <?php echo $isCurrentMonth ? '' : 'hidden'; ?>" data-month="<?php echo $monthKey; ?>">
+                                            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                                                <?php foreach ($monthData['transactions'] as $t): 
+                                                    $isCredit = $t['type'] === 'credit';
+                                                ?>
+                                                    <li class="transaction-item px-3 sm:px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                                                            <div class="flex items-start sm:items-center space-x-3">
+                                                                <div class="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center <?php echo $isCredit ? 'bg-red-100 dark:bg-red-900/50' : 'bg-green-100 dark:bg-green-900/50'; ?>">
+                                                                    <i class="fas <?php echo $isCredit ? 'fa-arrow-up text-red-600 dark:text-red-400' : 'fa-arrow-down text-green-600 dark:text-green-400'; ?> text-xs sm:text-sm"></i>
+                                                                </div>
+                                                                <div class="min-w-0 flex-1">
+                                                                    <p class="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                                        <?php echo htmlspecialchars($t['label'] ?: ($isCredit ? 'Credit' : 'Debit')); ?>
+                                                                    </p>
+                                                                    <div class="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-y-0.5 sm:space-y-0 sm:space-x-2">
+                                                                        <span class="whitespace-nowrap"><?php echo formatDateWithDay($t['date']); ?></span>
+                                                                        <?php if ($t['label']): ?>
+                                                                            <span class="hidden sm:inline-block">•</span>
+                                                                            <span class="truncate"><?php echo htmlspecialchars($t['label']); ?></span>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
+                                                                <span class="text-sm sm:text-base font-semibold whitespace-nowrap <?php echo $isCredit ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'; ?>">
+                                                                    <?php echo $isCredit ? '-' : '+'; ?><?php echo number_format(abs($t['amount']), 2); ?>
+                                                                </span>
+                                                                <div class="flex space-x-0.5 sm:space-x-1">
+                                                                    <button class="btn btn-icon btn-sm btn-outline" onclick="duplicateTransaction(this)" 
+                                                                            data-client="<?php echo htmlspecialchars($t['client']); ?>"
+                                                                            data-date="<?php echo htmlspecialchars($t['date']); ?>"
+                                                                            data-amount="<?php echo htmlspecialchars($t['amount']); ?>"
+                                                                            data-type="<?php echo htmlspecialchars($t['type']); ?>"
+                                                                            data-label="<?php echo htmlspecialchars($t['label']); ?>">
+                                                                        <i class="far fa-copy"></i>
+                                                                    </button>
+                                                                    <button class="btn btn-icon btn-sm btn-outline" onclick="setupEditTransaction(this)" 
+                                                                            data-id="<?php echo htmlspecialchars($t['id']); ?>"
+                                                                            data-client="<?php echo htmlspecialchars($t['client']); ?>"
+                                                                            data-date="<?php echo htmlspecialchars($t['date']); ?>"
+                                                                            data-amount="<?php echo htmlspecialchars($t['amount']); ?>"
+                                                                            data-type="<?php echo htmlspecialchars($t['type']); ?>"
+                                                                            data-label="<?php echo htmlspecialchars($t['label']); ?>">
+                                                                        <i class="far fa-edit"></i>
+                                                                    </button>
+                                                                    <button class="btn btn-icon btn-sm btn-outline text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-900/50" 
+                                                                            onclick="deleteTransaction(this)" 
+                                                                            data-id="<?php echo htmlspecialchars($t['id']); ?>">
+                                                                        <i class="far fa-trash-alt"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
                                         </div>
-                                    </li>
+                                    </div>
                                 <?php endforeach; ?>
-                            </ul>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+        </main>
     </div>
 
     <!-- Create Transaction Modal -->
@@ -1116,6 +1249,36 @@ function formatDateWithDay($dateString) {
     <script>
         // Pass PHP clients to JavaScript
         const phpClients = <?php echo $clientsJson; ?>;
+        
+        // Function to toggle month sections
+        function toggleMonthSection(button) {
+            const section = button.closest('.month-section');
+            const content = section.querySelector('.month-transactions');
+            const icon = button.querySelector('i');
+            
+            // Toggle visibility
+            content.classList.toggle('hidden');
+            
+            // Rotate chevron icon
+            if (content.classList.contains('hidden')) {
+                icon.classList.remove('rotate-180');
+            } else {
+                icon.classList.add('rotate-180');
+            }
+        }
+        
+        // Initialize month sections - expand current month by default
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add rotate-180 class to current month's chevron
+            const currentMonthSections = document.querySelectorAll('.month-section');
+            currentMonthSections.forEach(section => {
+                const content = section.querySelector('.month-transactions');
+                const icon = section.querySelector('.month-header i');
+                if (content && !content.classList.contains('hidden') && icon) {
+                    icon.classList.add('rotate-180');
+                }
+            });
+        });
 
         // Initialize modals
         const createModal = document.getElementById('createTransactionModal');
