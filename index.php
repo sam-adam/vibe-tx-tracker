@@ -328,7 +328,7 @@ class TransactionManager {
         $success = $this->csvHandler->writeAll($header, $allData);
         
         if (!$success) {
-            error_log('Failed to write transaction data to CSV');
+            Logger::error('Failed to write transaction data to CSV', 'ERROR');
             return false;
         }
 
@@ -443,7 +443,8 @@ if ($is_api_request) {
                 );
 
                 if ($transactionId === false) {
-                    throw new Exception('Failed to write transaction to file');
+                    Logger::error('Failed to write transaction to file', 'ERROR');
+                    throw new Exception('Failed to write transaction to file. Check error log for details.');
                 }
 
                 // If we got here, the transaction was created successfully
