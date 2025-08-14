@@ -1450,31 +1450,49 @@ $clientsJson = json_encode($clients);
                 label: button.dataset.label || ''
             };
 
-            // Set the form values
-            document.getElementById('newClientName').value = '';
-            document.getElementById('date').value = transaction.date;
-            document.getElementById('amount').value = transaction.amount;
-            document.getElementById('type').value = transaction.type;
-            document.getElementById('label').value = transaction.label;
+            // Get the create form
+            const form = document.getElementById('createTransactionForm');
+            if (!form) {
+                console.error('Create transaction form not found');
+                return;
+            }
+
+            // Set the form values using form.elements
+            form.elements['date'].value = transaction.date;
+            form.elements['amount'].value = transaction.amount;
+            form.elements['type'].value = transaction.type;
             
-            // Set client selection
+            // Handle label field if it exists
+            const labelInput = form.querySelector('input[name="label"]');
+            if (labelInput) {
+                labelInput.value = transaction.label;
+            }
+            
+            // Handle client selection
+            const newClientRadio = document.getElementById('newClient');
+            const selectClientRadio = document.getElementById('selectClient');
             const clientSelect = document.getElementById('clientSelect');
-            if (clientSelect) {
-                const clientOption = Array.from(clientSelect.options).find(
+            const newClientInput = document.getElementById('newClientName');
+            
+            if (clientSelect && newClientInput) {
+                // Check if client exists in the dropdown
+                const clientExists = Array.from(clientSelect.options).some(
                     opt => opt.value === transaction.client
                 );
                 
-                if (clientOption) {
-                    clientOption.selected = true;
-                    document.getElementById('selectClient').checked = true;
+                if (clientExists) {
+                    // Select existing client
+                    if (selectClientRadio) selectClientRadio.checked = true;
+                    clientSelect.value = transaction.client;
                     toggleClientInput('select');
                 } else {
-                    document.getElementById('newClientRadio').checked = true;
-                    document.getElementById('newClientName').value = transaction.client;
+                    // Use new client input
+                    if (newClientRadio) newClientRadio.checked = true;
+                    newClientInput.value = transaction.client;
                     toggleClientInput('new');
                 }
             }
-
+            
             // Open the create modal
             const createModal = document.getElementById('createTransactionModal');
             if (createModal) {
@@ -1501,10 +1519,16 @@ $clientsJson = json_encode($clients);
             const form = modal.querySelector('.editTransactionForm');
 
             // Fill form with transaction data
-            form.querySelector('[name="id"]').value = transaction.id;
-            form.querySelector('[name="date"]').value = transaction.date;
-            form.querySelector('[name="amount"]').value = transaction.amount;
-            form.querySelector('[name="type"]').value = transaction.type;
+            const idInput = form.querySelector('[name="id"]');
+            const dateInput = form.querySelector('[name="date"]');
+            const amountInput = form.querySelector('[name="amount"]');
+            const typeSelect = form.querySelector('[name="type"]');
+            const labelInput = form.querySelector('[name="label"]');
+            
+            if (idInput) idInput.value = transaction.id;
+            if (dateInput) dateInput.value = transaction.date;
+            if (amountInput) amountInput.value = transaction.amount;
+            if (typeSelect) typeSelect.value = transaction.type;
 
             // Set client selection - ensure client select exists
             const clientSelect = form.querySelector('[name="client"]');
@@ -1523,13 +1547,7 @@ $clientsJson = json_encode($clients);
                 }
             }
 
-            // Set label if it exists
-            if (transaction.label) {
-                form.querySelector('[name="label"]').value = transaction.label;
-            }
-
             // Set label field
-            const labelInput = form.querySelector('[name="label"]');
             if (labelInput) {
                 labelInput.value = transaction.label || '';
             }
