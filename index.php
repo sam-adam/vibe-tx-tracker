@@ -1049,28 +1049,33 @@ $clientsJson = json_encode($clients);
                                                                 <span class="text-sm sm:text-base font-semibold whitespace-nowrap <?php echo $isCredit ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'; ?>">
                                                                     <?php echo $isCredit ? '-' : '+'; ?><?php echo number_format(abs($t['amount']), 2); ?>
                                                                 </span>
-                                                                <div class="flex space-x-0.5 sm:space-x-1">
-                                                                    <button class="btn btn-icon btn-sm btn-outline" onclick="duplicateTransaction(this)" 
+                                                                <div class="flex space-x-2 sm:space-x-3">
+                                                                    <button class="btn btn-icon btn-base p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors" 
+                                                                            onclick="duplicateTransaction(this)" 
                                                                             data-client="<?php echo htmlspecialchars($t['client']); ?>"
                                                                             data-date="<?php echo htmlspecialchars($t['date']); ?>"
                                                                             data-amount="<?php echo htmlspecialchars($t['amount']); ?>"
                                                                             data-type="<?php echo htmlspecialchars($t['type']); ?>"
-                                                                            data-label="<?php echo htmlspecialchars($t['label']); ?>">
-                                                                        <i class="far fa-copy"></i>
+                                                                            data-label="<?php echo htmlspecialchars($t['label']); ?>"
+                                                                            aria-label="Duplicate transaction">
+                                                                        <i class="far fa-copy text-base sm:text-lg"></i>
                                                                     </button>
-                                                                    <button class="btn btn-icon btn-sm btn-outline" onclick="setupEditTransaction(this)" 
+                                                                    <button class="btn btn-icon btn-base p-2 sm:p-2.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors" 
+                                                                            onclick="setupEditTransaction(this)" 
                                                                             data-id="<?php echo htmlspecialchars($t['id']); ?>"
                                                                             data-client="<?php echo htmlspecialchars($t['client']); ?>"
                                                                             data-date="<?php echo htmlspecialchars($t['date']); ?>"
                                                                             data-amount="<?php echo htmlspecialchars($t['amount']); ?>"
                                                                             data-type="<?php echo htmlspecialchars($t['type']); ?>"
-                                                                            data-label="<?php echo htmlspecialchars($t['label']); ?>">
-                                                                        <i class="far fa-edit"></i>
+                                                                            data-label="<?php echo htmlspecialchars($t['label']); ?>"
+                                                                            aria-label="Edit transaction">
+                                                                        <i class="far fa-edit text-base sm:text-lg"></i>
                                                                     </button>
-                                                                    <button class="btn btn-icon btn-sm btn-outline text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-900/50" 
+                                                                    <button class="btn btn-icon btn-base p-2 sm:p-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors" 
                                                                             onclick="deleteTransaction(this)" 
-                                                                            data-id="<?php echo htmlspecialchars($t['id']); ?>">
-                                                                        <i class="far fa-trash-alt"></i>
+                                                                            data-id="<?php echo htmlspecialchars($t['id']); ?>"
+                                                                            aria-label="Delete transaction">
+                                                                        <i class="far fa-trash-alt text-base sm:text-lg"></i>
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -1447,9 +1452,9 @@ $clientsJson = json_encode($clients);
 
             // Set the form values
             document.getElementById('newClientName').value = '';
-            document.getElementById('transactionDate').value = transaction.date;
+            document.getElementById('date').value = transaction.date;
             document.getElementById('amount').value = transaction.amount;
-            document.getElementById('transactionType').value = transaction.type;
+            document.getElementById('type').value = transaction.type;
             document.getElementById('label').value = transaction.label;
             
             // Set client selection
