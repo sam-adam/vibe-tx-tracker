@@ -1434,6 +1434,49 @@ $clientsJson = json_encode($clients);
             }
         });
 
+        // Duplicate Transaction
+        function duplicateTransaction(button) {
+            // Get transaction data from data attributes
+            const transaction = {
+                client: button.dataset.client,
+                date: new Date().toISOString().split('T')[0], // Set to today's date for the duplicate
+                amount: Math.abs(parseFloat(button.dataset.amount)),
+                type: button.dataset.type,
+                label: button.dataset.label || ''
+            };
+
+            // Set the form values
+            document.getElementById('newClientName').value = '';
+            document.getElementById('transactionDate').value = transaction.date;
+            document.getElementById('amount').value = transaction.amount;
+            document.getElementById('transactionType').value = transaction.type;
+            document.getElementById('label').value = transaction.label;
+            
+            // Set client selection
+            const clientSelect = document.getElementById('clientSelect');
+            if (clientSelect) {
+                const clientOption = Array.from(clientSelect.options).find(
+                    opt => opt.value === transaction.client
+                );
+                
+                if (clientOption) {
+                    clientOption.selected = true;
+                    document.getElementById('selectClient').checked = true;
+                    toggleClientInput('select');
+                } else {
+                    document.getElementById('newClientRadio').checked = true;
+                    document.getElementById('newClientName').value = transaction.client;
+                    toggleClientInput('new');
+                }
+            }
+
+            // Open the create modal
+            const createModal = document.getElementById('createTransactionModal');
+            if (createModal) {
+                createModal.showModal();
+            }
+        }
+
         // Edit Transaction
         function setupEditTransaction(button) {
             // Get transaction data from data attributes
@@ -1441,8 +1484,8 @@ $clientsJson = json_encode($clients);
                 id: button.dataset.id,
                 client: button.dataset.client,
                 date: button.dataset.date,
-                amount: Math.abs(parseFloat(button.dataset.amount)), // Get absolute value
-                type: button.dataset.amount < 0 ? 'credit' : 'debit', // Determine type from amount sign
+                amount: Math.abs(parseFloat(button.dataset.amount)),
+                type: button.dataset.type,
                 label: button.dataset.label || ''
             };
 
@@ -1458,18 +1501,21 @@ $clientsJson = json_encode($clients);
             form.querySelector('[name="amount"]').value = transaction.amount;
             form.querySelector('[name="type"]').value = transaction.type;
 
-            // Set client selection
+            // Set client selection - ensure client select exists
             const clientSelect = form.querySelector('[name="client"]');
-            const clientOption = Array.from(clientSelect.options).find(
-                opt => opt.value === transaction.client
-            );
+            if (clientSelect) {
+                // Add client if not in the list
+                const clientOption = Array.from(clientSelect.options).find(
+                    opt => opt.value === transaction.client
+                );
 
-            if (clientOption) {
-                clientOption.selected = true;
-            } else {
-                // If client doesn't exist in the list, add it
-                const option = new Option(transaction.client, transaction.client, true, true);
-                clientSelect.add(option);
+                if (clientOption) {
+                    clientOption.selected = true;
+                } else if (transaction.client) {
+                    // If client doesn't exist in the list, add it
+                    const option = new Option(transaction.client, transaction.client, true, true);
+                    clientSelect.add(option);
+                }
             }
 
             // Set label if it exists
@@ -1641,57 +1687,7 @@ $clientsJson = json_encode($clients);
                 }
             });
 
-            // Function to handle duplicate transaction
-            function duplicateTransaction(button) {
-                // Get transaction data from data attributes
-                const transaction = {
-                    client: button.dataset.client,
-                    date: button.dataset.date,
-                    amount: button.dataset.amount,
-                    type: button.dataset.type,
-                    label: button.dataset.label || ''
-                };
-
-                // Pre-fill the create transaction form
-                const form = document.getElementById('createTransactionForm');
-
-                // Set client (try to select existing client first)
-                const clientSelect = form.querySelector('select[name="client"]');
-                const clientInput = document.getElementById('newClientName');
-                const clientTypeNew = document.getElementById('newClient');
-                const clientTypeExisting = document.getElementById('selectClient');
-
-                // Check if client exists in the dropdown
-                const clientExists = Array.from(clientSelect.options).some(
-                    option => option.value === transaction.client
-                );
-
-                if (clientExists) {
-                    // Select existing client
-                    clientTypeExisting.checked = true;
-                    clientSelect.value = transaction.client;
-                    clientSelect.disabled = false;
-                    clientInput.style.display = 'none';
-                    clientInput.required = false;
-                } else {
-                    // Use new client input
-                    clientTypeNew.checked = true;
-                    clientSelect.value = '';
-                    clientSelect.disabled = true;
-                    clientInput.style.display = 'block';
-                    clientInput.required = true;
-                    clientInput.value = transaction.client;
-                }
-
-                // Set other fields
-                form.querySelector('input[name="date"]').value = transaction.date;
-                form.querySelector('input[name="amount"]').value = Math.abs(transaction.amount);
-                form.querySelector('select[name="type"]').value = transaction.type;
-                form.querySelector('input[name="label"]').value = transaction.label;
-
-                // Open the create transaction modal
-                createModal.showModal();
-            }
+            // Using the main duplicateTransaction function defined above
         });
     </script>
 </body>
