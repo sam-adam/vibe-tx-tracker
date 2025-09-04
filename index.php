@@ -1003,13 +1003,13 @@ $clientsJson = json_encode($clients);
                                                 <?php 
                                                 $monthBalanceClass = 'month-balance ';
                                                 if ($monthBalance > 0) {
-                                                    $monthBalanceClass .= 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200';
+                                                    $monthBalanceClass .= 'px-2 py-1 ml-3 text-xs font-bold rounded bg-green-100 dark:bg-green-400/50 text-green-800 dark:text-green-200';
                                                     $monthBalanceSign = '+';
                                                 } else if ($monthBalance < 0) {
-                                                    $monthBalanceClass .= 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200';
+                                                    $monthBalanceClass .= 'px-2 py-1 ml-3 text-xs font-bold rounded bg-red-100 dark:bg-red-400/50 text-red-800 dark:text-red-200';
                                                     $monthBalanceSign = '-';
                                                 } else {
-                                                    $monthBalanceClass .= 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+                                                    $monthBalanceClass .= 'px-2 py-1 ml-3 text-xs font-bold rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
                                                     $monthBalanceSign = '';
                                                 }
                                                 ?>
