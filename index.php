@@ -1692,8 +1692,11 @@ $clientsJson = json_encode($clients);
 
             console.log('Deleting transaction with ID:', id);
 
-            fetch(`?api&action=delete&id=${encodeURIComponent(id)}`, {
-                method: 'POST'
+            fetch(`?api=delete&id=${encodeURIComponent(id)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
             })
             .then(response => response.json())
             .then(result => {
