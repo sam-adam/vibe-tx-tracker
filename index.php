@@ -1162,21 +1162,21 @@ $clientsJson = json_encode($clients);
     <!-- Edit Transaction Modal Template -->
     <template id="editTransactionModalTemplate">
         <dialog class="editTransactionModal modal">
-            <div class="modal-content bg-white rounded-lg shadow-lg p-6 relative">
-                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500" aria-label="Close">
+            <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" aria-label="Close">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-                <h2 class="text-xl font-semibold mb-4 pr-6">Edit Transaction</h2>
-                <form class="editTransactionForm space-y-4">
+                <h2 class="text-xl font-semibold mb-4 pr-6 text-gray-900 dark:text-white">Edit Transaction</h2>
+                <form class="editTransactionForm space-y-4 text-gray-900 dark:text-gray-100">
                     <input type="hidden" name="id">
                     
                     <!-- Client Selection -->
                     <div class="space-y-2">
-                        <label for="clientSelect" class="block text-sm font-medium text-gray-700">Client</label>
+                        <label for="clientSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Client</label>
                         <div class="flex space-x-2">
-                            <select id="clientSelect" class="form-select flex-1" aria-label="Select client">
+                            <select id="clientSelect" class="form-select flex-1 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" aria-label="Select client">
                                 <?php foreach($clients as $client): ?>
                                     <option value="<?php echo htmlspecialchars($client); ?>"><?php echo htmlspecialchars($client); ?></option>
                                 <?php endforeach; ?>
@@ -1187,7 +1187,7 @@ $clientsJson = json_encode($clients);
                         </div>
                         <div id="newClientContainer" class="hidden mt-2">
                             <div class="relative">
-                                <input type="text" id="newClientInput" class="form-input pl-10" placeholder="Enter new client name" aria-label="New client name">
+                                <input type="text" id="newClientInput" class="form-input pl-10 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" placeholder="Enter new client name" aria-label="New client name">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-user text-gray-400"></i>
                                 </div>
@@ -1197,9 +1197,9 @@ $clientsJson = json_encode($clients);
                     
                     <!-- Date -->
                     <div class="space-y-2">
-                        <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
                         <div class="relative">
-                            <input type="date" id="date" name="date" class="form-input pl-10" required>
+                            <input type="date" id="date" name="date" class="form-input w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" required>
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <i class="far fa-calendar text-gray-400"></i>
                             </div>
@@ -1209,18 +1209,18 @@ $clientsJson = json_encode($clients);
                     <!-- Amount and Type -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                            <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Amount</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span class="text-gray-500">Rp</span>
                                 </div>
-                                <input type="number" id="amount" name="amount" step="0.01" class="form-input pl-12" required>
+                                <input type="number" id="amount" name="amount" step="0.01" min="0.01" class="form-input w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" required>
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
+                            <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
                             <div class="relative">
-                                <select id="type" name="type" class="form-select" required>
+                                <select id="type" name="type" class="form-select w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" required>
                                     <option value="debit">Debit (Add)</option>
                                     <option value="credit">Credit (Subtract)</option>
                                 </select>
@@ -1233,9 +1233,9 @@ $clientsJson = json_encode($clients);
                     
                     <!-- Label -->
                     <div class="space-y-2">
-                        <label for="label" class="block text-sm font-medium text-gray-700">Label (Optional)</label>
+                        <label for="label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Label (Optional)</label>
                         <div class="relative">
-                            <input type="text" id="label" name="label" class="form-input pl-10" placeholder="e.g., Anter jemput">
+                            <input type="text" id="label" name="label" class="form-input w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" placeholder="e.g., Project X, Bonus, etc.">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <i class="fas fa-tag text-gray-400"></i>
                             </div>
@@ -1244,11 +1244,11 @@ $clientsJson = json_encode($clients);
                     
                     <!-- Form Actions -->
                     <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" id="cancelFormBtn" class="btn btn-outline">
+                        <button type="button" id="cancelFormBtn" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
                             Cancel
                         </button>
-                        <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <i class="fas fa-save"></i>
+                        <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" id="submitBtn">
+                            <i class="fas fa-save mr-2"></i>
                             <span>Save Transaction</span>
                         </button>
                     </div>
