@@ -1162,8 +1162,13 @@ $clientsJson = json_encode($clients);
     <!-- Edit Transaction Modal Template -->
     <template id="editTransactionModalTemplate">
         <dialog class="editTransactionModal modal">
-            <div class="modal-content bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-semibold mb-4">Edit Transaction</h2>
+            <div class="modal-content bg-white rounded-lg shadow-lg p-6 relative">
+                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500" aria-label="Close">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <h2 class="text-xl font-semibold mb-4 pr-6">Edit Transaction</h2>
                 <form class="editTransactionForm space-y-4">
                     <input type="hidden" name="id">
                     
@@ -1600,11 +1605,20 @@ $clientsJson = json_encode($clients);
                 }
             });
 
-            // Handle close button
-            const closeButton = modal.querySelector('.editTransactionClose');
-            closeButton.addEventListener('click', () => {
+            // Handle close button and overlay click
+            const closeButton = modal.querySelector('button[aria-label="Close"]');
+            const closeModal = () => {
                 modal.close();
                 document.body.removeChild(modal);
+            };
+            
+            closeButton.addEventListener('click', closeModal);
+            
+            // Close when clicking outside the modal
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
             });
 
             // Show the modal
