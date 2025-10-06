@@ -1174,22 +1174,35 @@ $clientsJson = json_encode($clients);
                     
                     <!-- Client Selection -->
                     <div class="space-y-2">
-                        <label for="clientSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Client</label>
-                        <div class="flex space-x-2">
-                            <select id="clientSelect" class="form-select flex-1 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" aria-label="Select client">
-                                <?php foreach($clients as $client): ?>
-                                    <option value="<?php echo htmlspecialchars($client); ?>"><?php echo htmlspecialchars($client); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <button type="button" id="newClientBtn" class="btn btn-outline whitespace-nowrap">
-                                <i class="fas fa-plus"></i> New
-                            </button>
-                        </div>
-                        <div id="newClientContainer" class="hidden mt-2">
-                            <div class="relative">
-                                <input type="text" id="newClientInput" class="form-input pl-10 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" placeholder="Enter new client name" aria-label="New client name">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-user text-gray-400"></i>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Client</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input id="selectClient" name="clientType" type="radio" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" value="select" checked>
+                                <label for="selectClient" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                    Select existing client
+                                </label>
+                            </div>
+                            <div class="ml-6">
+                                <select id="clientSelect" name="client" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
+                                    <option value="">Select a client</option>
+                                    <?php foreach($clients as $client): ?>
+                                        <option value="<?php echo htmlspecialchars($client); ?>"><?php echo htmlspecialchars($client); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center mt-2">
+                                <input id="newClient" name="clientType" type="radio" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" value="new">
+                                <label for="newClient" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                    Add new client
+                                </label>
+                            </div>
+                            <div id="newClientContainer" class="ml-6 mt-1 hidden">
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-user text-gray-400"></i>
+                                    </div>
+                                    <input type="text" id="newClientName" name="newClientName" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="Enter new client name">
                                 </div>
                             </div>
                         </div>
@@ -1529,46 +1542,76 @@ $clientsJson = json_encode($clients);
             const amountInput = form.querySelector('[name="amount"]');
             const typeSelect = form.querySelector('[name="type"]');
             const labelInput = form.querySelector('[name="label"]');
+            const clientSelect = form.querySelector('#clientSelect');
+            const newClientInput = form.querySelector('#newClientName');
+            const selectClientRadio = form.querySelector('#selectClient');
+            const newClientRadio = form.querySelector('#newClient');
+            const newClientContainer = form.querySelector('#newClientContainer');
             
+            // Set form values
             if (idInput) idInput.value = transaction.id;
             if (dateInput) dateInput.value = transaction.date;
             if (amountInput) amountInput.value = transaction.amount;
             if (typeSelect) typeSelect.value = transaction.type;
+            if (labelInput) labelInput.value = transaction.label || '';
 
-            // Set client selection - ensure client select exists
-            const clientSelect = form.querySelector('[name="client"]');
+            // Handle client selection
             if (clientSelect) {
-                // Add client if not in the list
-                const clientOption = Array.from(clientSelect.options).find(
-                    opt => opt.value === transaction.client
-                );
-
-                if (clientOption) {
-                    clientOption.selected = true;
+                // Check if client exists in the select options
+                const clientExists = Array.from(clientSelect.options).some(opt => opt.value === transaction.client);
+                
+                if (clientExists) {
+                    // Client exists, select it
+                    clientSelect.value = transaction.client;
+                    selectClientRadio.checked = true;
                 } else if (transaction.client) {
-                    // If client doesn't exist in the list, add it
+                    // Client doesn't exist, add it to the select and check new client radio
                     const option = new Option(transaction.client, transaction.client, true, true);
                     clientSelect.add(option);
+                    clientSelect.value = transaction.client;
+                    selectClientRadio.checked = true;
                 }
-            }
-
-            // Set label field
-            if (labelInput) {
-                labelInput.value = transaction.label || '';
             }
 
             // Remove any existing submit event listeners to prevent duplicates
             const newForm = form.cloneNode(true);
             form.parentNode.replaceChild(newForm, form);
 
+            // Toggle between client select and new client input
+            const toggleClientInput = (type) => {
+                if (type === 'new') {
+                    newClientContainer.classList.remove('hidden');
+                    clientSelect.required = false;
+                    newClientInput.required = true;
+                } else {
+                    newClientContainer.classList.add('hidden');
+                    clientSelect.required = true;
+                    newClientInput.required = false;
+                }
+            };
+
+            // Set up event listeners for client type toggles
+            selectClientRadio.addEventListener('change', () => toggleClientInput('select'));
+            newClientRadio.addEventListener('change', () => toggleClientInput('new'));
+
             // Add new submit event listener
             newForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
                 const formData = new FormData(newForm);
+                const clientType = formData.get('clientType');
+                const client = clientType === 'new' 
+                    ? formData.get('newClientName').trim()
+                    : formData.get('client');
+
+                if (!client) {
+                    alert('Please select or enter a client name');
+                    return;
+                }
+
                 const data = {
                     id: formData.get('id'),
-                    client: formData.get('client'),
+                    client: client,
                     date: formData.get('date'),
                     amount: parseFloat(formData.get('amount')),
                     type: formData.get('type'),
