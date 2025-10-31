@@ -992,9 +992,9 @@ $clientsJson = json_encode($clients);
                                     }
                                     $isMonthPositive = $monthBalance >= 0;
                                 ?>
-                                    <div class="month-section">
+                                    <div class="month-section flex flex-row">
                                         <!-- Month Header -->
-                                        <button class="month-header w-full px-4 sm:px-6 py-3 text-left flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150" 
+                                        <button class="month-header flex-1 px-4 sm:px-6 py-3 text-left flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150" 
                                                 onclick="toggleMonthSection(this)">
                                             <div class="flex items-center">
                                                 <span class="font-medium text-gray-900 dark:text-white">
@@ -1019,6 +1019,18 @@ $clientsJson = json_encode($clients);
                                             </div>
                                             <i class="fas fa-chevron-down text-gray-400 dark:text-gray-500 transform transition-transform duration-200"></i>
                                         </button>
+                                        <button onclick="shareViaWhatsApp(event, '<?php echo $client; ?>', '<?php echo $monthKey; ?>', <?php echo $monthBalance; ?>, <?php echo htmlspecialchars(json_encode($monthData['transactions']), ENT_QUOTES, 'UTF-8'); ?>)" 
+                                                class="ml-2 w-12 items-center justify-center flex flex-row p-1.5 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                                                title="Share via WhatsApp"
+                                                type="button"
+                                        >
+                                        <span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.966-.273-.099-.471-.148-.67.15-.197.297-.767.963-.94 1.16-.173.199-.343.223-.637.075-.293-.15-1.24-.457-2.36-1.458-.872-.781-1.46-1.742-1.632-2.037-.17-.29-.019-.449.13-.594.136-.135.296-.353.445-.527.146-.181.194-.297.29-.495.1-.198.049-.371-.025-.52-.075-.15-.67-1.598-.922-2.18-.24-.555-.487-.48-.67-.49-.172-.008-.371-.01-.57-.01-.198 0-.52.074-.79.358-.273.3-1.04 1.016-1.04 2.477 0 1.462 1.065 2.876 1.213 3.074.149.198 2.096 3.2 5.078 4.487.71.306 1.262.489 1.694.625.712.227 1.36.196 1.87.118.571-.09 1.755-.718 2.004-1.414.248-.696.248-1.289.173-1.413-.074-.124-.271-.198-.57-.345m-5.446 7.443h-.016a9.17 9.17 0 01-4.918-1.44l-.36-.214-3.734.982.998-3.648-.235-.373a9.274 9.274 0 01-1.452-4.907c.003-5.139 4.19-9.33 9.34-9.33 2.5 0 4.847.974 6.614 2.742a9.303 9.303 0 012.727 6.588c-.004 5.14-4.194 9.33-9.34 9.33M20.52 3.449C18.24 1.246 15.24 0 12.044 0 5.463 0 .103 5.36.101 11.94c0 2.08.548 4.11 1.59 5.896L0 24l6.335-1.652a11.99 11.99 0 005.704 1.443h.006c6.585 0 11.946-5.365 11.948-11.944 0-3.177-1.24-6.164-3.495-8.411"/>
+                                            </svg>
+                                        </span>
+                                        </button>
+
                                         
                                         <!-- Transactions List -->
                                         <div class="month-transactions <?php echo $isCurrentMonth ? '' : 'hidden'; ?>" data-month="<?php echo $monthKey; ?>">
@@ -1270,6 +1282,63 @@ $clientsJson = json_encode($clients);
         </dialog>
     </template>
     <script>
+        // Function to share transaction details via WhatsApp
+        function shareViaWhatsApp(event, client, month, balance, transactions) {
+            event.stopPropagation();
+            // Format the month for display (e.g., '2023-01' -> 'January 2023')
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            const [year, monthNum] = month.split('-');
+            const monthName = monthNames[parseInt(monthNum) - 1];
+            const displayMonth = `${monthName} ${year}`;
+            
+            // Calculate totals
+            let totalIncome = 0;
+            let totalExpense = 0;
+            
+            transactions.forEach(t => {
+                if (t.type === 'credit') {
+                    totalExpense += parseFloat(t.amount);
+                } else {
+                    totalIncome += parseFloat(t.amount);
+                }
+            });
+            
+            // Create transaction list
+            let transactionList = transactions.map(t => {
+                const amount = parseFloat(t.amount).toFixed(2);
+                const type = t.type === 'credit' ? '🔴' : '🟢';
+                const date = new Date(t.date);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return `${type} ${formattedDate}: ${t.label || 'Transaction'} - ${amount}`;
+            }).join('\n');
+            
+            // Create the message
+            const message = `💼 *${client} - ${displayMonth}*\n\n` +
+                           `📈 *Pemasukan:* +${totalIncome.toFixed(2)}\n` +
+                           `📉 *Pengeluaran:* -${totalExpense.toFixed(2)}\n` +
+                           `💰 *Saldo:* ${balance >= 0 ? '+' : ''}${balance.toFixed(2)}\n\n` +
+                           `*Detail:*\n${transactionList}`;
+            
+            // Encode the message for URL
+            const encodedMessage = encodeURIComponent(message);
+            
+            // Open WhatsApp Web with the message
+            window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+            
+            // Add a small visual feedback
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                </svg>
+            `;
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+            }, 2000);
+        }
+        
         // Pass PHP clients to JavaScript
         const phpClients = <?php echo $clientsJson; ?>;
         
